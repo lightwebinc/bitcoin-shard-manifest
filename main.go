@@ -1,4 +1,4 @@
-// Command bitcoin-shard-manifest is a small standalone daemon that
+// Command shard-manifest is a small standalone daemon that
 // periodically emits BRC-137 ShardManifest datagrams to the IPv6 multicast
 // beacon group. It advertises the local participant's shard_bits
 // configuration and the set of shard groups it has joined so operators (and
@@ -43,7 +43,7 @@ func run() error {
 	}
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})))
 
-	slog.Info("bitcoin-shard-manifest starting",
+	slog.Info("shard-manifest starting",
 		"version", Version,
 		"shard_bits", cfg.ShardBits,
 		"role_hint", cfg.RoleHint,

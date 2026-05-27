@@ -58,7 +58,7 @@ when neither is set.
 ## Example: proxy on shard_bits=4 joined to all groups
 
 ```bash
-bitcoin-shard-manifest \
+shard-manifest \
   -shard-bits=4 \
   -joined-groups=all \
   -role-hint=proxy \
@@ -70,7 +70,7 @@ bitcoin-shard-manifest \
 ## Example: listener on shard_bits=4 joined to two specific groups
 
 ```bash
-bitcoin-shard-manifest \
+shard-manifest \
   -shard-bits=4 \
   -joined-groups=0x3,0x7 \
   -role-hint=listener \

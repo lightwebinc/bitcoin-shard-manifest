@@ -1,5 +1,5 @@
 // Package config loads and validates runtime configuration for the
-// bitcoin-shard-manifest daemon. Parameters are accepted from CLI flags
+// shard-manifest daemon. Parameters are accepted from CLI flags
 // first; environment variables serve as fallbacks; hard-coded defaults
 // apply when neither is present.
 package config
@@ -112,7 +112,7 @@ func (c *Config) ScopePrefixes() ([]uint16, error) {
 func Load() (*Config, error) {
 	c := &Config{}
 
-	fs := flag.NewFlagSet("bitcoin-shard-manifest", flag.ContinueOnError)
+	fs := flag.NewFlagSet("shard-manifest", flag.ContinueOnError)
 
 	var (
 		shardBits        = fs.Uint("shard-bits", envUint("SHARD_BITS", 0), "shard bits (0..12)")

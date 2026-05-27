@@ -1,11 +1,11 @@
-BIN      := bitcoin-shard-manifest
+BIN      := shard-manifest
 CLI      := manifest-emit
 PKG      := ./...
 VERSION  ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 TAG      ?= $(VERSION)
 IMAGE    ?= ghcr.io/lightwebinc/$(BIN)
-COMMON   ?= ../bitcoin-shard-common
-LDFLAGS  := -s -w -X main.Version=$(VERSION) -X github.com/lightwebinc/bitcoin-shard-manifest/metrics.Version=$(VERSION)
+COMMON   ?= ../shard-common
+LDFLAGS  := -s -w -X main.Version=$(VERSION) -X github.com/lightwebinc/shard-manifest/metrics.Version=$(VERSION)
 
 DAGGER_RUN := GOWORK=off go run .
 
@@ -15,7 +15,7 @@ DAGGER_RUN := GOWORK=off go run .
 
 all: build build-cli
 
-build:                 ## build bitcoin-shard-manifest on the host
+build:                 ## build shard-manifest on the host
 	CGO_ENABLED=0 go build -trimpath -ldflags '$(LDFLAGS)' -o $(BIN) .
 
 build-cli:             ## build manifest-emit CLI

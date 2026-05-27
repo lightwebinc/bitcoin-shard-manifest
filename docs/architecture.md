@@ -1,6 +1,6 @@
 # Architecture
 
-`bitcoin-shard-manifest` is a single-purpose periodic announcer. It does
+`shard-manifest` is a single-purpose periodic announcer. It does
 **not** ingress, cache, retransmit, or interpret data-plane frames; it only
 emits BRC-137 ShardManifest datagrams.
 
@@ -72,7 +72,7 @@ long-running daemon.
 
 ## On-the-wire format
 
-See [BRC-137](https://github.com/lightwebinc/bitcoin-multicast/blob/main/docs/brc-137-shard-manifest.md)
+See [BRC-137](https://github.com/lightwebinc/bsv-multicast/blob/main/docs/brc-137-shard-manifest.md)
 for the complete specification. Key points:
 
 - 64-byte header + variable-length payload (list of 16-bit indices or bitmap).

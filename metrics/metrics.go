@@ -1,5 +1,5 @@
 // Package metrics initialises an OpenTelemetry MeterProvider for the
-// bitcoin-shard-manifest daemon, backed by both a Prometheus exporter
+// shard-manifest daemon, backed by both a Prometheus exporter
 // (for scraping) and an optional OTLP gRPC exporter (for push-based
 // delivery to any OTel-compatible backend). It also serves /metrics,
 // /healthz, and /readyz over HTTP.
@@ -26,7 +26,7 @@ import (
 )
 
 // ServiceName is the OTel resource service.name for this daemon.
-const ServiceName = "bitcoin-shard-manifest"
+const ServiceName = "shard-manifest"
 
 // Version is set via -ldflags at build time.
 var Version = "dev"
