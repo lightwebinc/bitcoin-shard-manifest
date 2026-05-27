@@ -10,9 +10,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/lightwebinc/bitcoin-shard-manifest/config"
-	"github.com/lightwebinc/bitcoin-shard-manifest/metrics"
-	"github.com/lightwebinc/bitcoin-shard-manifest/sender"
+	"github.com/lightwebinc/shard-manifest/config"
+	"github.com/lightwebinc/shard-manifest/metrics"
+	"github.com/lightwebinc/shard-manifest/sender"
 )
 
 func main() {

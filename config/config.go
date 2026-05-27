@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lightwebinc/bitcoin-shard-common/frame"
+	"github.com/lightwebinc/shard-common/frame"
 )
 
 // Scopes maps a human-readable scope name to the two-byte big-endian IPv6

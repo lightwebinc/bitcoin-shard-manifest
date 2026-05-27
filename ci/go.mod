@@ -1,4 +1,4 @@
-module github.com/lightwebinc/bitcoin-shard-manifest/ci
+module github.com/lightwebinc/shard-manifest/ci
 
 go 1.25.0
 

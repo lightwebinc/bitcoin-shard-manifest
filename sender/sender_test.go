@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lightwebinc/bitcoin-shard-common/frame"
+	"github.com/lightwebinc/shard-common/frame"
 
-	"github.com/lightwebinc/bitcoin-shard-manifest/config"
+	"github.com/lightwebinc/shard-manifest/config"
 )
 
 func newSender(c *config.Config) *Sender {

@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1.7
 #
-# Multi-stage Dockerfile for bitcoin-shard-manifest. Bundles two binaries:
+# Multi-stage Dockerfile for shard-manifest. Bundles two binaries:
 #
-#   - /usr/local/bin/bitcoin-shard-manifest  (the periodic announcement daemon)
+#   - /usr/local/bin/shard-manifest  (the periodic announcement daemon)
 #   - /usr/local/bin/manifest-emit           (one-shot CLI for ops/debug)
 #
 # The default ENTRYPOINT runs the daemon. Override with --entrypoint when
@@ -26,8 +26,8 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     mkdir -p /out; \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
       go build -trimpath -buildvcs=false \
-        -ldflags "-s -w -X main.Version=${VERSION} -X github.com/lightwebinc/bitcoin-shard-manifest/metrics.Version=${VERSION}" \
-        -o /out/bitcoin-shard-manifest .; \
+        -ldflags "-s -w -X main.Version=${VERSION} -X github.com/lightwebinc/shard-manifest/metrics.Version=${VERSION}" \
+        -o /out/shard-manifest .; \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
       go build -trimpath -buildvcs=false \
         -ldflags "-s -w -X main.Version=${VERSION}" \
@@ -37,4 +37,4 @@ FROM gcr.io/distroless/static:nonroot
 USER nonroot:nonroot
 COPY --from=builder /out/ /usr/local/bin/
 EXPOSE 9091
-ENTRYPOINT ["/usr/local/bin/bitcoin-shard-manifest"]
+ENTRYPOINT ["/usr/local/bin/shard-manifest"]

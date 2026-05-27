@@ -13,11 +13,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/lightwebinc/bitcoin-shard-common/frame"
-	"github.com/lightwebinc/bitcoin-shard-common/shard"
+	"github.com/lightwebinc/shard-common/frame"
+	"github.com/lightwebinc/shard-common/shard"
 
-	"github.com/lightwebinc/bitcoin-shard-manifest/config"
-	"github.com/lightwebinc/bitcoin-shard-manifest/metrics"
+	"github.com/lightwebinc/shard-manifest/config"
+	"github.com/lightwebinc/shard-manifest/metrics"
 )
 
 // Sender drives the periodic emission of ShardManifest datagrams.
