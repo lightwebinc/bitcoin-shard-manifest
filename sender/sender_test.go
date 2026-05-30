@@ -146,6 +146,89 @@ func TestBitmapBytes(t *testing.T) {
 	}
 }
 
+func TestBuildManifest_SSM_SourceModeFlag(t *testing.T) {
+	c := &config.Config{
+		SourceMode:       "ssm",
+		ShardBits:        4,
+		Encoding:         config.EncodingAuto,
+		RoleHint:         frame.RoleHintManifestOnly,
+		AnnounceInterval: 60 * time.Second,
+	}
+	s := newSender(c)
+	m, err := s.buildManifest(false)
+	if err != nil {
+		t.Fatalf("buildManifest: %v", err)
+	}
+	if m.Flags&frame.ShardManifestFlagSourceModeSSM == 0 {
+		t.Error("SourceModeSSM flag not set when cfg.SourceMode=ssm")
+	}
+	if m.Flags&frame.ShardManifestFlagSourcesValid != 0 {
+		t.Error("SourcesValid set with no resolved publishers")
+	}
+	if len(m.Sources) != 0 {
+		t.Errorf("Sources = %v, want empty", m.Sources)
+	}
+}
+
+func TestBuildManifest_SSM_WithSources(t *testing.T) {
+	c := &config.Config{
+		SourceMode:       "ssm",
+		ShardBits:        4,
+		Encoding:         config.EncodingAuto,
+		RoleHint:         frame.RoleHintManifestOnly,
+		AnnounceInterval: 60 * time.Second,
+	}
+	s := newSender(c)
+	// Simulate the publisher resolver having populated the cache.
+	s.sources = [][16]byte{
+		{0xFD, 0x20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01},
+		{0xFD, 0x20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x02},
+	}
+	m, err := s.buildManifest(false)
+	if err != nil {
+		t.Fatalf("buildManifest: %v", err)
+	}
+	if m.Flags&frame.ShardManifestFlagSourceModeSSM == 0 {
+		t.Error("SourceModeSSM flag not set")
+	}
+	if m.Flags&frame.ShardManifestFlagSourcesValid == 0 {
+		t.Error("SourcesValid flag not set when sources are populated")
+	}
+	if len(m.Sources) != 2 {
+		t.Fatalf("Sources len = %d, want 2", len(m.Sources))
+	}
+	// Round-trip through the encoder/decoder.
+	buf := make([]byte, frame.ShardManifestSize(m))
+	if _, err := frame.EncodeShardManifest(m, buf); err != nil {
+		t.Fatalf("EncodeShardManifest: %v", err)
+	}
+	got, err := frame.DecodeShardManifest(buf)
+	if err != nil {
+		t.Fatalf("DecodeShardManifest: %v", err)
+	}
+	if len(got.Sources) != 2 {
+		t.Errorf("decoded Sources len = %d, want 2", len(got.Sources))
+	}
+}
+
+func TestBuildManifest_ASM_NoSSMFlags(t *testing.T) {
+	c := &config.Config{
+		SourceMode:       "asm",
+		ShardBits:        4,
+		Encoding:         config.EncodingAuto,
+		RoleHint:         frame.RoleHintManifestOnly,
+		AnnounceInterval: 60 * time.Second,
+	}
+	s := newSender(c)
+	m, err := s.buildManifest(false)
+	if err != nil {
+		t.Fatalf("buildManifest: %v", err)
+	}
+	if m.Flags&frame.ShardManifestFlagSourceModeSSM != 0 {
+		t.Error("SourceModeSSM flag should not be set when cfg.SourceMode=asm")
+	}
+}
+
 func TestJitterBounds(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
 	d := 100 * time.Millisecond

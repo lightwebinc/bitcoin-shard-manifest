@@ -10,9 +10,12 @@ import (
 	"log/slog"
 	"math/rand"
 	"net"
+	"net/netip"
+	"sync"
 	"syscall"
 	"time"
 
+	"github.com/lightwebinc/shard-common/bootstrap"
 	"github.com/lightwebinc/shard-common/frame"
 	"github.com/lightwebinc/shard-common/shard"
 
@@ -29,6 +32,14 @@ type Sender struct {
 	srcIPv6    net.IP
 	instanceID uint32
 	dests      []*net.UDPAddr
+
+	// publishers resolves the SSM data-plane publisher source set
+	// (Flags.SourcesValid payload). nil when cfg.SourceMode is "asm"
+	// or cfg.Publishers is empty.
+	publishers *bootstrap.Resolver
+
+	mu      sync.RWMutex
+	sources [][16]byte // cached, sorted, deduped; refreshed by publishers.OnChange
 }
 
 // New builds a Sender. ResolveIface and PrimaryIPv6 are called eagerly.
@@ -50,7 +61,7 @@ func New(cfg *config.Config, rec *metrics.Recorder, instanceID uint32) (*Sender,
 		ip := shard.GroupAddr(scope, cfg.MCGroupID, shard.GroupBeacon)
 		dests = append(dests, &net.UDPAddr{IP: ip, Port: cfg.Port})
 	}
-	return &Sender{
+	s := &Sender{
 		cfg:        cfg,
 		rec:        rec,
 		log:        slog.Default().With("component", "sender"),
@@ -58,7 +69,46 @@ func New(cfg *config.Config, rec *metrics.Recorder, instanceID uint32) (*Sender,
 		srcIPv6:    src,
 		instanceID: instanceID,
 		dests:      dests,
-	}, nil
+	}
+	if len(cfg.Publishers) > 0 {
+		s.publishers = &bootstrap.Resolver{
+			Entries:  cfg.Publishers,
+			Refresh:  cfg.PublishersRefresh,
+			OnChange: s.onPublishersChange,
+		}
+	}
+	return s, nil
+}
+
+// onPublishersChange caches the current resolved set as [][16]byte so
+// buildManifest doesn't re-resolve on every emission.
+func (s *Sender) onPublishersChange(_, _ []netip.Addr) {
+	if s.publishers == nil {
+		return
+	}
+	cur := s.publishers.Current()
+	cached := make([][16]byte, len(cur))
+	for i, a := range cur {
+		cached[i] = a.As16()
+	}
+	s.mu.Lock()
+	s.sources = cached
+	s.mu.Unlock()
+	if s.rec != nil {
+		s.rec.SetPublisherCount(len(cached))
+	}
+}
+
+// currentSources returns the cached source set; safe for concurrent reads.
+func (s *Sender) currentSources() [][16]byte {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if len(s.sources) == 0 {
+		return nil
+	}
+	out := make([][16]byte, len(s.sources))
+	copy(out, s.sources)
+	return out
 }
 
 // Iface returns the resolved egress interface (informational).
@@ -71,6 +121,11 @@ func (s *Sender) SrcIPv6() net.IP { return s.srcIPv6 }
 // re-sends at AnnounceInterval (with ±10% jitter) until ctx is cancelled.
 // On context cancellation a final manifest with the Shutdown flag is emitted.
 func (s *Sender) Run(ctx context.Context) error {
+	if s.publishers != nil {
+		if err := s.publishers.Start(ctx); err != nil {
+			return fmt.Errorf("publishers resolver: %w", err)
+		}
+	}
 	conns, err := s.openSockets()
 	if err != nil {
 		return err
@@ -165,6 +220,13 @@ func (s *Sender) buildManifest(shutdown bool) (*frame.ShardManifest, error) {
 	}
 	if shutdown {
 		m.Flags |= frame.ShardManifestFlagShutdown
+	}
+	if s.cfg.SourceMode == "ssm" {
+		m.Flags |= frame.ShardManifestFlagSourceModeSSM
+	}
+	if srcs := s.currentSources(); len(srcs) > 0 {
+		m.Flags |= frame.ShardManifestFlagSourcesValid
+		m.Sources = srcs
 	}
 
 	groups, hasClaim := resolveGroups(s.cfg)

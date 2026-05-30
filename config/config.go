@@ -76,6 +76,15 @@ type Config struct {
 	AnnounceInterval time.Duration
 	TTL              time.Duration
 
+	// SSM. SourceMode declares the data-plane addressing model the
+	// manifest advertises (asm|ssm). Publishers is the operator-curated
+	// list of data-plane publisher addresses (IPv6 literals or DNS names)
+	// whose resolved AAAA records become the SourcesValid payload union.
+	// PublishersRefresh sets the DNS re-resolve interval.
+	SourceMode        string
+	Publishers        []string
+	PublishersRefresh time.Duration
+
 	// Observability
 	MetricsAddr  string
 	OTLPEndpoint string
@@ -131,7 +140,10 @@ func Load() (*Config, error) {
 		metricsAddr      = fs.String("metrics-addr", envOrDefault("METRICS_ADDR", "[::]:9091"), "metrics/health HTTP listener address")
 		otlpEndpoint     = fs.String("otlp-endpoint", os.Getenv("OTLP_ENDPOINT"), "OTLP gRPC endpoint (empty = disabled)")
 		otlpInterval     = fs.Duration("otlp-interval", envDuration("OTLP_INTERVAL", 15*time.Second), "OTLP push interval")
-		debug            = fs.Bool("debug", envBool("DEBUG", false), "verbose logging")
+		debug             = fs.Bool("debug", envBool("DEBUG", false), "verbose logging")
+		sourceMode        = fs.String("source-mode", envOrDefault("SOURCE_MODE", "asm"), "data-plane addressing model: asm|ssm")
+		publishers        = fs.String("publishers", os.Getenv("PUBLISHERS"), "comma list of data-plane publisher IPv6 addresses or DNS names (SSM Sources payload)")
+		publishersRefresh = fs.Duration("publishers-refresh", envDuration("PUBLISHERS_REFRESH", 30*time.Second), "DNS re-resolve interval for -publishers entries")
 	)
 
 	if err := fs.Parse(os.Args[1:]); err != nil {
@@ -214,6 +226,33 @@ func Load() (*Config, error) {
 	c.OTLPEndpoint = *otlpEndpoint
 	c.OTLPInterval = *otlpInterval
 	c.Debug = *debug
+
+	switch strings.ToLower(*sourceMode) {
+	case "asm":
+		c.SourceMode = "asm"
+	case "ssm":
+		c.SourceMode = "ssm"
+	default:
+		return nil, fmt.Errorf("invalid source-mode %q (asm|ssm)", *sourceMode)
+	}
+	if *publishers != "" {
+		parts := strings.Split(*publishers, ",")
+		out := make([]string, 0, len(parts))
+		for _, p := range parts {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				out = append(out, p)
+			}
+		}
+		c.Publishers = out
+	}
+	if *publishersRefresh <= 0 {
+		return nil, fmt.Errorf("publishers-refresh must be > 0")
+	}
+	c.PublishersRefresh = *publishersRefresh
+	if c.SourceMode == "ssm" && len(c.Publishers) == 0 {
+		return nil, fmt.Errorf("source-mode=ssm requires -publishers to be non-empty")
+	}
 
 	return c, nil
 }

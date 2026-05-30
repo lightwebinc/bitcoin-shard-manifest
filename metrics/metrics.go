@@ -51,6 +51,7 @@ type Recorder struct {
 	joinedGroupsGauge metric.Int64Gauge
 	lastSendGauge     metric.Int64Gauge
 	buildInfo         metric.Int64Gauge
+	publisherCount    metric.Int64Gauge
 }
 
 // New constructs a Recorder. instanceID is the OTel service.instance.id;
@@ -148,6 +149,10 @@ func New(instanceID string, otlpEndpoint string, otlpInterval time.Duration) (*R
 		metric.WithDescription("Build info gauge (always 1; version/instance via labels)")); err != nil {
 		return nil, err
 	}
+	if r.publisherCount, err = meter.Int64Gauge("bsm_publisher_count",
+		metric.WithDescription("Number of resolved data-plane publisher IPv6 addresses currently advertised in Flags.SourcesValid payload")); err != nil {
+		return nil, err
+	}
 	r.buildInfo.Record(context.Background(), 1, metric.WithAttributes(
 		attribute.String("version", Version),
 		attribute.String("instance", instanceID),
@@ -187,6 +192,13 @@ func (r *Recorder) SetShardBits(v uint8) {
 // SetJoinedGroups records the number of currently joined groups.
 func (r *Recorder) SetJoinedGroups(n int) {
 	r.joinedGroupsGauge.Record(context.Background(), int64(n))
+}
+
+// SetPublisherCount records the number of resolved data-plane publisher
+// IPv6 addresses currently included in the manifest's Flags.SourcesValid
+// payload. Called from the publishers-resolver OnChange hook.
+func (r *Recorder) SetPublisherCount(n int) {
+	r.publisherCount.Record(context.Background(), int64(n))
 }
 
 // SetDraining marks the daemon as draining so /readyz returns 503.
